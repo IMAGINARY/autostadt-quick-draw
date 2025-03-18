@@ -1,0 +1,21 @@
+/**
+ * Hide some elements and disable some links pointing to external resources.
+ **/
+
+#button-about,
+#share_twitter,
+#share_facebook,
+#glue-cookie-notification-bar-1,
+.privacy-link-group {
+  display: none;
+}
+
+#splashview-tagline-small > a {
+  text-decoration: none;
+  color: black !important;
+}
+
+#splashview-tagline-small > a,
+#splashview > div.ui.bl > a {
+  pointer-events: none;
+}

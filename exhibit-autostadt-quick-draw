@@ -1,0 +1,59 @@
+#!/bin/bash
+# This wrapper script is supposed to be visible in ps -a resp. ps -u `id -u` to make
+# it easy to kill it (by a script or manually)
+
+PIDS=()
+# shellcheck disable=SC2317 # False alarm due to trap
+function finish {
+  EXIT_CODE=$?
+  kill "${PIDS[@]}" >/dev/null 2>&1
+  exit "$EXIT_CODE"
+}
+trap finish SIGINT SIGTERM EXIT
+
+# Set the working directory to the directory containing this script
+cd "$(dirname "$0")"
+
+KIOSK_BROWSER_INJECT_CSS_FILES="$(readlink -f make-exhibition-ready.css)"
+
+if [ -n "${AUTOSTADT_QUICK_DRAW_RESTYLE}" ]; then
+  echo "Enable exhibit restyling"
+  KIOSK_BROWSER_INJECT_CSS_FILES="$KIOSK_BROWSER_INJECT_CSS_FILES:$(readlink -f restyle.css)"
+fi
+
+if [ -n "${AUTOSTADT_QUICK_DRAW_LANG}" ]; then
+  echo "Setting initial exhibit language to ${AUTOSTADT_QUICK_DRAW_LANG}"
+  LANG="${AUTOSTADT_QUICK_DRAW_LANG}"
+fi
+
+if [ -n "${AUTOSTADT_QUICK_DRAW_ZOOM}" ]; then
+  echo "Setting initial exhibit zoom to ${AUTOSTADT_QUICK_DRAW_ZOOM}"
+else
+  AUTOSTADT_QUICK_DRAW_ZOOM=1
+fi
+
+export KIOSK_BROWSER_INJECT_CSS_FILES
+
+# Launch the exhibit in the background
+# shellcheck disable=SC2086 # We actually want expansion and globbing enabled for `KIOSK_OPTS`
+kiosk-browser $KIOSK_OPTS \
+  --remote-debugging-port 9222 \
+  --kiosk \
+  --fullscreen \
+  --hide-scrollbars \
+  --disable-drag \
+  --disable-selection \
+  --overflow=hidden \
+  --reload-unresponsive 60 \
+  --reload-idle "$((3 * 60))" \
+  --zoom "${AUTOSTADT_QUICK_DRAW_ZOOM}" \
+  --app-name-suffix=autostadt-quick-draw \
+  --preload preload.js \
+  https://quickdraw.withgoogle.com
+
+PID_UI=$!
+PIDS=("${PIDS[@]}" "$PID_UI")
+
+# Wait for the exhibit to finish or until the signal trap is triggered
+wait "$PID_UI"
+exit $?
