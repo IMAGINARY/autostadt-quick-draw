@@ -19,3 +19,11 @@
 #splashview > div.ui.bl > a {
   pointer-events: none;
 }
+
+/**
+ * Disable languages we don't need
+ **/
+
+#select-locale > option[value]:not([value="de"], [value="en_US"]) {
+  display: none !important;
+}
